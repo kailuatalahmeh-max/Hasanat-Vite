@@ -359,3 +359,20 @@ main { max-width: 640px; margin: 0 auto; padding: 14px 16px 24px; }
 .verify.warn { background: color-mix(in srgb, var(--accent) 15%, transparent); color: var(--accent); }
 .ext-link { font-size: 0.85rem; color: var(--primary); }
 .btn.wide { width: 100%; padding: 14px; font-size: 1rem; }
+
+/* ---------- عند إكمال العدد ---------- */
+.done-bar {
+  margin: 0 0 14px; padding: 12px; border-radius: 14px; text-align: center;
+  background: var(--ok-bg); border: 1px solid color-mix(in srgb, var(--ok) 35%, transparent);
+}
+.done-bar p { margin: 0 0 10px; color: var(--ok); font-weight: 700; }
+.done-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.tap.complete { cursor: default; }
+.tap.complete .tap-count { color: var(--accent); }
+.shake { animation: shake 0.35s ease; }
+@keyframes shake {
+  20%, 60% { transform: translateX(-7px); }
+  40%, 80% { transform: translateX(7px); }
+}
+.nudge { animation: nudge 0.4s ease; }
+@keyframes nudge { 50% { transform: scale(1.03); } }

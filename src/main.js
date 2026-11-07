@@ -108,7 +108,14 @@ function renderCounter() {
         <span class="tap-laps" id="tap-laps"></span>
       </span>
     </button>
-    <p class="hint muted">اضغط على الدائرة للعدّ — أو زر المسافة على الكمبيوتر</p>
+    <p class="hint muted" id="tap-hint">اضغط على الدائرة للعدّ — أو زر المسافة على الكمبيوتر</p>
+    <div class="done-bar" id="done-bar" role="status" aria-live="polite" hidden>
+      <p>أتممت العدد، تقبّل الله</p>
+      <div class="done-actions">
+        <button class="btn" data-act="restart">${icons.reset}<span>ابدأ من جديد</span></button>
+        <button class="btn primary" data-act="next" ${list.length > 1 ? '' : 'disabled'}>${icons.next}<span>الذكر التالي</span></button>
+      </div>
+    </div>
 
     <div class="controls">
       <button class="ctl" data-act="undo" ${d ? '' : 'disabled'}>${icons.undo}<span>تراجع</span></button>
@@ -175,8 +182,8 @@ function customForm() {
 }
 
 function listItem(x, cur) {
-  const c = countOf(x);
   const t = targetOf(x);
+  const c = Math.min(countOf(x), t);
   const done = c >= t;
   return `
     <li class="dhikr-li ${cur && x.id === cur.id ? 'active' : ''} ${done ? 'done' : ''}">
@@ -199,22 +206,23 @@ function updateCount(animate = true) {
   $('#daily-total').textContent = fmt(state.daily.total);
   const d = currentDhikr();
   if (!d || !$('#tap-count')) return;
-  const c = countOf(d);
   const t = targetOf(d);
-  const laps = Math.floor(c / t);
-  const rem = c % t;
-  const progress = c === 0 ? 0 : rem === 0 ? 1 : rem / t;
+  const c = Math.min(countOf(d), t); // لا يتجاوز العدّ الرقم المطلوب
+  const complete = c >= t;
 
   $('#tap-count').textContent = fmt(c);
   $('#tap-target').textContent = `من ${fmt(t)}`;
-  $('#tap-laps').textContent = laps >= 1 ? (laps === 1 ? 'اكتمل ✓' : `اكتمل ×${fmt(laps)}`) : '';
-  $('#ring').style.strokeDashoffset = String(RING_C * (1 - progress));
-  $('#tap').classList.toggle('complete', c >= t);
+  $('#tap-laps').textContent = complete ? 'اكتمل ✓' : '';
+  $('#ring').style.strokeDashoffset = String(RING_C * (1 - c / t));
+  $('#tap').classList.toggle('complete', complete);
+  $('#tap').setAttribute('aria-label', complete ? 'اكتمل العدد' : 'اضغط للتسبيح (أو زر المسافة)');
+  $('#done-bar').hidden = !complete;
+  $('#tap-hint').hidden = complete;
 
   const li = counterView.querySelector(`[data-pick="${CSS.escape(d.id)}"]`);
   if (li) {
     li.querySelector('.li-count').textContent = `${fmt(c)} / ${fmt(t)}`;
-    li.parentElement.classList.toggle('done', c >= t);
+    li.parentElement.classList.toggle('done', complete);
   }
   if (animate) {
     const el = $('#tap-count');
@@ -224,31 +232,55 @@ function updateCount(animate = true) {
   }
 }
 
+function replayAnimation(el, cls) {
+  el.classList.remove(cls);
+  void el.offsetWidth;
+  el.classList.add(cls);
+}
+
+let lastRejectToast = 0;
+/** ضغطة بعد إكمال العدد: تُرفض ولا تُحتسب */
+function rejectTap() {
+  vibrate([25, 40, 25]);
+  replayAnimation($('#tap'), 'shake');
+  replayAnimation($('#done-bar'), 'nudge');
+  if (Date.now() - lastRejectToast > 2500) {
+    lastRejectToast = Date.now();
+    toast('اكتمل العدد — اضغط «ابدأ من جديد» للعدّ مرة أخرى');
+  }
+}
+
 function increment() {
   const d = currentDhikr();
   if (!d) return;
+  const t = targetOf(d);
+  if (countOf(d) >= t) return rejectTap();
   if (rollDay()) toast('يوم جديد — بدأ مجموع اليوم من الصفر');
   state.counts[d.id] = countOf(d) + 1;
   addToDaily(1);
   save();
-  const t = targetOf(d);
-  if (state.counts[d.id] % t === 0) {
+  if (state.counts[d.id] === t) {
     if (state.settings.doneVibrate) vibrate([70, 50, 70, 50, 140]);
-    const tap = $('#tap');
-    tap.classList.remove('celebrate');
-    void tap.offsetWidth;
-    tap.classList.add('celebrate');
-    toast(state.counts[d.id] === t ? 'أتممت العدد، تقبّل الله' : `أتممت ${fmt(state.counts[d.id] / t)} دورات`);
+    replayAnimation($('#tap'), 'celebrate');
   } else if (state.settings.tapVibrate) {
     vibrate(12);
   }
   updateCount();
 }
 
+function restart() {
+  const d = currentDhikr();
+  if (!d) return;
+  state.counts[d.id] = 0;
+  save();
+  updateCount(false);
+}
+
 function undo() {
   const d = currentDhikr();
   if (!d || countOf(d) === 0) return;
-  state.counts[d.id] = countOf(d) - 1;
+  // عدّادات قديمة قد تكون تجاوزت الرقم المطلوب قبل هذا التحديث
+  state.counts[d.id] = Math.min(countOf(d), targetOf(d)) - 1;
   addToDaily(-1);
   save();
   updateCount();
@@ -337,6 +369,7 @@ counterView.addEventListener('click', (e) => {
   else if (act === 'reset') resetCurrent();
   else if (act === 'edit') openTargetDialog();
   else if (act === 'next') next();
+  else if (act === 'restart') restart();
 });
 counterView.addEventListener('submit', (e) => {
   if (e.target.id !== 'custom-form') return;
