@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>مسبحة الأذكار</title>
+    <meta name="description" content="مسبحة إلكترونية للأذكار مع فضائلها ومصادرها من السنة، تعمل بدون إنترنت." />
+    <meta name="theme-color" content="#0f5c4a" />
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon-180x180.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="المسبحة" />
+    <script>
+      // تطبيق الثيم المحفوظ قبل الرسم لتجنّب الوميض
+      try {
+        var t = JSON.parse(localStorage.getItem('misbaha:v1') || '{}').settings?.theme;
+        if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+      } catch (e) {}
+    </script>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <img src="/favicon.svg" alt="" width="32" height="32" />
+        <h1>مسبحة الأذكار</h1>
+      </div>
+      <div class="top-actions">
+        <div class="daily" title="مجموع اليوم">
+          <span class="daily-label">اليوم</span>
+          <strong id="daily-total">0</strong>
+        </div>
+        <button class="icon-btn" id="theme-btn" aria-label="تبديل الوضع"></button>
+        <button class="icon-btn" id="settings-btn" aria-label="الإعدادات"></button>
+      </div>
+    </header>
+
+    <main>
+      <section id="view-counter" class="view" aria-label="المسبحة"></section>
+      <section id="view-detail" class="view" aria-label="الفضل والحديث" hidden></section>
+      <section id="view-rizq" class="view" aria-label="أسباب الرزق" hidden></section>
+    </main>
+
+    <dialog id="dlg-target" class="sheet">
+      <form method="dialog">
+        <h2>تعديل العدد</h2>
+        <p class="muted" id="dlg-target-hint"></p>
+        <input id="dlg-target-input" type="number" inputmode="numeric" min="1" max="100000" required />
+        <div class="sheet-actions">
+          <button value="save" class="btn primary">حفظ</button>
+          <button value="default" class="btn" formnovalidate>العدد الافتراضي</button>
+          <button value="cancel" class="btn ghost" formnovalidate>إلغاء</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="dlg-settings" class="sheet">
+      <form method="dialog">
+        <h2>الإعدادات</h2>
+        <label class="switch-row">
+          <span>الاهتزاز مع كل تسبيحة</span>
+          <input type="checkbox" id="set-tap-vibrate" />
+        </label>
+        <label class="switch-row">
+          <span>الاهتزاز عند إكمال العدد</span>
+          <input type="checkbox" id="set-done-vibrate" />
+        </label>
+        <div class="stats" id="stats"></div>
+        <div class="sheet-actions">
+          <button value="reset-counts" class="btn danger" formnovalidate>تصفير كل العدّادات</button>
+          <button value="close" class="btn ghost" formnovalidate>إغلاق</button>
+        </div>
+      </form>
+    </dialog>
+
+    <div id="toast" role="status" aria-live="polite"></div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
